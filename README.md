@@ -1,4 +1,4 @@
-lightdm-login-chromeos
+lightdm-login-chromiumos
 ===================
 
-Installs chromiumos-aura window manager to Ubuntu
+Installs Chromium OS Aura window manager to Ubuntu, with Chromium browser.

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Chromium OS
+Comment=This session will start Chromium OS
+Exec=chromeos
+TryExec=chromeos
+Type=Application
+

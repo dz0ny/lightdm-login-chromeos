@@ -1,0 +1,10 @@
+Section: misc
+Priority: optional
+Homepage: https://github.com/dz0ny/lightdm-login-chromeos
+Package: lightdm-login-chromiumos
+Version: 1.0
+Maintainer: Janez Troha <dz0ny@shortmail.com>
+Depends: matchbox-window-manager
+Architecture: all
+Description: Installs Chromium OS Aura window manager to Ubuntu, with Chromium browser.
+ Adds shortcuts to user login, which enables Chromium OS UI right from the start.
