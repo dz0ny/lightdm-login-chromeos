@@ -1,0 +1,5 @@
+FILE_NAME=/usr/lib/jvm/java-6-openjdk-amd64/jre/lib/amd64/IcedTeaPlugin.so
+PLUGIN_NAME="IcedTea-Web Plugin (using IcedTea-Web)"
+VERSION="1.3"
+DESCRIPTION="Version: 1.3"
+MIME_TYPES="application/x-java-vm;application/x-java-applet;application/x-java-bean;application/x-java-vm-npruntime"

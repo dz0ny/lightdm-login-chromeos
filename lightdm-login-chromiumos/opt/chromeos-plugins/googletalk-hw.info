@@ -1,0 +1,5 @@
+FILE_NAME=/opt/google/talkplugin/libnpgtpo3dautoplugin.so
+PLUGIN_NAME="Google Talk Plugin Video Accelerator"
+VERSION=""
+DESCRIPTION="Version: 0.1.44.16"
+MIME_TYPES="application/vnd.gtpo3d.auto"

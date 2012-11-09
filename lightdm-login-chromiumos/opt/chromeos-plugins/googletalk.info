@@ -1,0 +1,5 @@
+FILE_NAME=/opt/google/talkplugin/libnpgoogletalk.so
+PLUGIN_NAME="Google Talk Plugin"
+VERSION=""
+DESCRIPTION="Version: 3.6.1.0"
+MIME_TYPES="application/googletalk"

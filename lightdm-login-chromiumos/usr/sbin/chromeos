@@ -76,7 +76,7 @@ rm -f ${DATA_DIR}/SingletonSocket
 export DONT_CRASH_ON_ASSERT=1
 
 # Look for pepper plugins and register them
-PEPPER_PATH=/opt/google/chrome/PepperFlash
+PEPPER_PATH=/opt/chromeos-plugins
 REGISTER_PLUGINS=
 COMMA=
 FLASH_FLAGS=
@@ -102,7 +102,7 @@ for file in $(find $PEPPER_PATH -name '*.info'); do
     FLASH_FLAGS="--ppapi-flash-path=${FILE_NAME}"
     FLASH_FLAGS="${FLASH_FLAGS} --ppapi-flash-version=${VERSION}"
     PPAPI_FLASH_FLAGS="--ppapi-flash-args=enable_hw_video_decode=0"
-    PPAPI_FLASH_FLAGS="${PPAPI_FLASH_FLAGS},enable_stagevideo_auto=0"
+    PPAPI_FLASH_FLAGS="${PPAPI_FLASH_FLAGS},enable_stagevideo_auto=1"
     PPAPI_FLASH_FLAGS="${PPAPI_FLASH_FLAGS},enable_trace_to_console=0"
   else
     PLUGIN_STRING="${PLUGIN_STRING};${MIME_TYPES}"
@@ -138,7 +138,7 @@ exec $WMM & $CHROME --compress-sys-feedback \
             --enterprise-enrollment-modulus-limit=12 \
             --force-compositing-mode \
             --load-opencryptoki \
-            --log-level=3 \
+            --log-level=0 \
             --login-manager \
             --login-profile=user \
             --reload-killed-tabs \
@@ -151,11 +151,7 @@ exec $WMM & $CHROME --compress-sys-feedback \
             --user-data-dir="$DATA_DIR" \
             --enable-gpu-sandbox \
             --allow-webui-compositing \
-            --show-volume-status \
             --enable-natural-scroll-default \
-            --load-plugin="/opt/google/chrome/libpdf.so" \
-            --load-plugin="/opt/google/talkplugin/libnpgoogletalk.so" \
-            --extra-plugin-dir="/opt/google/chrome/" \
             "$REGISTER_PLUGINS" \
             ${ACCELERATED_FLAGS} \
             ${FLASH_FLAGS} \

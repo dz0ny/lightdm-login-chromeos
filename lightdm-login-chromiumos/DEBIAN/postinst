@@ -10,8 +10,16 @@ case "$1" in
     rm -rf /opt/chromeos
     VERSION=$(curl http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_ChromiumOS/LAST_CHANGE)
     URL="http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_ChromiumOS/${VERSION}/chrome-linux.zip"
-    curl -z "/tmp/chromeos-linux.zip" -o "/tmp/chromeos-linux.zip" -L "$URL"
-    unzip "/tmp/chromeos-linux.zip" -d "/opt/"
+    ZIPFILE="/tmp/chromeos-linux.zip"
+
+    zip -T $ZIPFILE
+    # ABORTS IF ZIP FILES ARE NO GOOD.
+    if [ $? != "0" ] ; then
+      rm $ZIPFILE
+    fi
+
+    curl -z $ZIPFILE -o $ZIPFILE -L "$URL"
+    unzip $ZIPFILE -d "/opt/"
     mv /opt/chrome-linux /opt/chromeos
     chmod 775 /opt/chromeos -R
   ;;

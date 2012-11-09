@@ -1,0 +1,6 @@
+FILE_NAME=/opt/google/chrome/PepperFlash/libpepflashplayer.so
+PLUGIN_NAME="Shockwave Flash"
+VERSION="11.5.31.101"
+VISIBLE_VERSION="11.5 r31"
+DESCRIPTION="$PLUGIN_NAME $VISIBLE_VERSION"
+MIME_TYPES="application/x-shockwave-flash"

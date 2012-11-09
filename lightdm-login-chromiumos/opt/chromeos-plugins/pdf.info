@@ -1,0 +1,5 @@
+FILE_NAME=/opt/google/chrome/libpdf.so
+PLUGIN_NAME="Chrome PDF Viewer"
+VERSION=""
+DESCRIPTION="$PLUGIN_NAME"
+MIME_TYPES="application/pdf;application/x-google-chrome-print-preview-pdf"
