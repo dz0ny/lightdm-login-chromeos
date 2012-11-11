@@ -8,8 +8,8 @@ set -x
 case "$1" in
   configure|reconfigure)
     rm -rf /opt/chromeos
-    VERSION=$(curl http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_ChromiumOS/LAST_CHANGE)
-    URL="http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_ChromiumOS/${VERSION}/chrome-linux.zip"
+    LKGR=$(curl http://chromium-status.appspot.com/lkgr)
+    URL="http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_ChromiumOS/${LKGR}/chrome-linux.zip"
     ZIPFILE="/tmp/chromeos-linux.zip"
 
     zip -T $ZIPFILE
