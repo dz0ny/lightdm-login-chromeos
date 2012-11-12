@@ -22,6 +22,8 @@ case "$1" in
     unzip $ZIPFILE -d "/opt/"
     mv /opt/chrome-linux /opt/chromeos
     chmod 775 /opt/chromeos -R
+    chown root:root /usr/sbin/chromeos
+    chown root:root /usr/share/xsessions/chromeos.desktop
   ;;
 
   abort-upgrade|abort-remove|abort-deconfigure)
