@@ -1,11 +1,14 @@
-.PHONY: default deb
+.PHONY: default deb skip ch
 
-default: deb lint
+default: skip
 
-all: deb lint
+all: skip
+
+ch:
+	git-dch -R --auto -c
 
 deb:
-	dpkg --build lightdm-login-chromiumos ./
+	git-buildpackage
 
-lint:
-	lintian lightdm-login-chromiumos*.deb	
+skip:
+	echo "Tabularasa"

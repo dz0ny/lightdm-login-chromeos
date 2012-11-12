@@ -1,0 +1,6 @@
+lightdm-login-chromiumos (1.0) unstable; urgency=low
+
+  [ Janez Troha (dz0ny) ]
+  * Initial release, fixing deb
+
+ -- Janez Troha (dz0ny) <janez.troha@gmail.com>  Sun, 11 Nov 2012 23:49:48 +0100

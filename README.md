@@ -9,6 +9,14 @@ Installs Chromium OS Aura window manager to Ubuntu(64bit only), with embedded Ch
 ###Standalone mode (select at login screen)
 ![alt text](http://screencloud.net/img/screenshots/54573dd3fbb263b24e5984263d6fbf68.png "Standalone mode")
 
+##How to install
+
+    sudo add-apt-repository ppa:janez-troha/lightdm-login-chromiumos -y
+    sudo apt-get update && sudo apt-get install lightdm-login-chromiumos
+
+##FAQ
+
+  https://github.com/dz0ny/lightdm-login-chromeos/issues?labels=faq
 
 ##What works: 
  
