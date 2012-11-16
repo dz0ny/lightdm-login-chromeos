@@ -81,7 +81,7 @@ REGISTER_PLUGINS=
 COMMA=
 FLASH_FLAGS=
 PPAPI_FLASH_FLAGS=
-for file in $(find $PEPPER_PATH -name '*.info'); do
+for file in $(find $PEPPER_PATH -name '*.plugin-info'); do
   FILE_NAME=
   PLUGIN_NAME=
   DESCRIPTION=

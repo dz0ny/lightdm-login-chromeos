@@ -1,0 +1,14 @@
+Source: lightdm-login-chromiumos
+Section: web
+Priority: optional
+Maintainer: Janez Troha (dz0ny) <janez.troha@gmail.com>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.3
+Homepage: https://github.com/dz0ny/lightdm-login-chromeos
+
+Package: lightdm-login-chromiumos
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, matchbox-window-manager, curl
+Recommends: google-chrome-stable, google-talkplugin, icedtea-plugin
+Description: Installs Chromium OS browser.
+ Adds shortcuts to user login, which enables Chromium OS UI right from the start.
