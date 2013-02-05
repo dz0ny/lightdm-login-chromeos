@@ -21,7 +21,7 @@ set -e
 case "$1" in
     configure)
 
-      LKGR=$(curl http://chromium-status.appspot.com/lkgr)
+      LKGR=$(curl http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_ChromiumOS/LAST_CHANGE)
       URL="http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_ChromiumOS/${LKGR}/chrome-linux.zip"
       ZIPFILE=$(tempfile)
       echo "Downloading: ${URL}"
