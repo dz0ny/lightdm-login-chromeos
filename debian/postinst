@@ -34,6 +34,7 @@ case "$1" in
       chown root:root /usr/sbin/chromeos
       chown root:root /usr/share/xsessions/chromeos.desktop
       rm -rf $ZIPFILE
+      echo "Finished"
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

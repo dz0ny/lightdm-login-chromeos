@@ -2,7 +2,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: lightdm-login-chromiumos
 Source: https://github.com/dz0ny/lightdm-login-chromeos
 Files: *
-Copyright: 2012 Janez Troha (dz0ny) <janez.troha@gmail.com>
+Copyright: 2012-13 dz0ny <janez.troha@gmail.com>
 License: BSD like
   Copyright (c) 2012 The Chromium Authors. All rights reserved.
   Redistribution and use in source and binary forms, with or without

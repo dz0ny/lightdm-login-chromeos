@@ -1,7 +1,7 @@
 Source: lightdm-login-chromiumos
 Section: web
 Priority: optional
-Maintainer: Janez Troha (dz0ny) <janez.troha@gmail.com>
+Maintainer: dz0ny <janez.troha@gmail.com>
 Build-Depends: debhelper (>= 8.0.0)
 Standards-Version: 3.9.3
 Homepage: https://github.com/dz0ny/lightdm-login-chromeos
