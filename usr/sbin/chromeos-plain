@@ -1,0 +1,158 @@
+#!/bin/bash
+
+# Copyright (c) 2012 dz0ny && The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+CHROME="/opt/chromeos/chrome"
+WMM="matchbox-window-manager -use_titlebar no"
+
+# Custom version string for this release. This can be used to add a downstream
+# vendor string or release channel information.
+export CHROME_VERSION_EXTRA="ubuntu"
+
+## start script
+
+export USER=$(whoami)
+export DATA_DIR=/home/${USER}/chrome-os
+export LOGIN_PROFILE_DIR=${DATA_DIR}/Default
+export LOGNAME=${USER}
+export SHELL=/bin/bash
+export HOME=${DATA_DIR}/user
+
+mkdir -p ${DATA_DIR} && chown ${USER}:${USER} ${DATA_DIR}
+mkdir -p ${HOME} && chown ${USER}:${USER} ${HOME}
+
+# Directory where Chrome logs are written and prefix of files there.
+export CHROME_LOG_DIR=${DATA_DIR}/log/chrome
+export CHROME_LOG_PREFIX=chrome
+
+# Directory where session manager logs are written and prefix of files there.
+export UI_LOG_DIR=${DATA_DIR}/log/ui
+export UI_LOG_FILE=ui.LATEST
+
+mkdir -p $CHROME_LOG_DIR
+chown ${USER}:${USER} $CHROME_LOG_DIR
+
+mkdir -p $UI_LOG_DIR
+ln -sf ui.$(date +%Y%m%d-%H%M%S) $UI_LOG_DIR/$UI_LOG_FILE
+
+# Tell Chrome where to write logging messages.
+# $CHROME_LOG_DIR and $CHROME_LOG_PREFIX are defined in ui.conf,
+# and the directory is created there as well.
+export CHROME_LOG_FILE="${CHROME_LOG_DIR}/${CHROME_LOG_PREFIX}"
+
+# Log directory for this session.  Note that ${HOME} might not be
+# mounted until later (when the cryptohome is mounted), so we don't
+# mkdir CHROMEOS_SESSION_LOG_DIR immediately.
+export CHROMEOS_SESSION_LOG_DIR="${HOME}/log"
+
+# Forces Chrome mini dumps that are sent to the crash server to also be written
+# locally.  Chrome by default will create these mini dump files in
+# ~/.config/google-chrome/Crash Reports/
+
+export CHROME_HEADLESS=1
+
+echo "USER is : ${USER}"
+echo "Data dir is : ${DATA_DIR}"
+
+mkdir -p ${DATA_DIR} && chown ${USER}:${USER} ${DATA_DIR}
+mkdir -p ${HOME} && chown ${USER}:${USER} ${HOME}
+
+# Old builds will have a ${LOGIN_PROFILE_DIR} that's owned by root; newer ones
+# won't have this directory at all.
+mkdir -p ${LOGIN_PROFILE_DIR}
+chown ${USER}:${USER} ${LOGIN_PROFILE_DIR}
+
+CONSENT_FILE="$DATA_DIR/Consent To Send Stats"
+
+# We need to delete these files as Chrome may have left them around from
+# its prior run (if it crashed).
+rm -f ${DATA_DIR}/SingletonLock
+rm -f ${DATA_DIR}/SingletonSocket
+
+# Set an environment variable to prevent Flash asserts from crashing the plugin
+# process.
+export DONT_CRASH_ON_ASSERT=1
+
+# Look for pepper plugins and register them
+PEPPER_PATH=/opt/chromeos-plugins
+REGISTER_PLUGINS=
+COMMA=
+FLASH_FLAGS=
+PPAPI_FLASH_FLAGS=
+for file in $(find $PEPPER_PATH -name '*.plugin-info'); do
+  FILE_NAME=
+  PLUGIN_NAME=
+  DESCRIPTION=
+  VERSION=
+  MIME_TYPES=
+  . $file
+  [ -z "$FILE_NAME" ] && continue
+  PLUGIN_STRING="${FILE_NAME}"
+  if [ -n "$PLUGIN_NAME" ]; then
+    PLUGIN_STRING="${PLUGIN_STRING}#${PLUGIN_NAME}"
+    if [ -n "$DESCRIPTION" ]; then
+      PLUGIN_STRING="${PLUGIN_STRING}#${DESCRIPTION}"
+      [ -n "$VERSION" ] && PLUGIN_STRING="${PLUGIN_STRING}#${VERSION}"
+    fi
+  fi
+  if [ "$PLUGIN_NAME" = "Shockwave Flash" ]; then
+    # Flash is treated specially.
+    FLASH_FLAGS="--ppapi-flash-path=${FILE_NAME}"
+    FLASH_FLAGS="${FLASH_FLAGS} --ppapi-flash-version=${VERSION}"
+    PPAPI_FLASH_FLAGS="--ppapi-flash-args=enable_hw_video_decode=0"
+    PPAPI_FLASH_FLAGS="${PPAPI_FLASH_FLAGS},enable_stagevideo_auto=1"
+    PPAPI_FLASH_FLAGS="${PPAPI_FLASH_FLAGS},enable_trace_to_console=0"
+  else
+    PLUGIN_STRING="${PLUGIN_STRING};${MIME_TYPES}"
+    REGISTER_PLUGINS="${REGISTER_PLUGINS}${COMMA}${PLUGIN_STRING}"
+    COMMA=","
+  fi
+done
+if [ -n "$REGISTER_PLUGINS" ]; then
+  REGISTER_PLUGINS="--register-pepper-plugins=$REGISTER_PLUGINS"
+fi
+
+echo "Detected plugins : ${REGISTER_PLUGINS}"
+echo "Detected flash : ${FLASH_FLAGS}"
+echo "Detected flash-flags : ${PPAPI_FLASH_FLAGS}"
+
+# Setup GPU & acceleration flags which differ between x86/ARM SoC
+ACCELERATED_FLAGS="--enable-accelerated-layers"
+
+export LC_CTYPE=en_US.utf8
+
+exec $CHROME --compress-sys-feedback \
+            --disable-seccomp-sandbox \
+            --enable-accelerated-plugins \
+            --enable-gview \
+            --enable-logging \
+            --enable-partial-swap \
+            --enable-smooth-scrolling \
+            --enable-sync-tabs \
+            --enable-sync-tabs-for-other-clients \
+            --enable-threaded-compositing \
+            --enable-ui-release-front-surface \
+            --enterprise-enrollment-initial-modulus=5 \
+            --enterprise-enrollment-modulus-limit=12 \
+            --force-compositing-mode \
+            --load-opencryptoki \
+            --log-level=0 \
+            --login-manager \
+            --login-profile=user \
+            --reload-killed-tabs \
+            --scroll-pixels=3 \
+            --ui-enable-partial-swap \
+            --ui-enable-per-tile-painting \
+            --ui-prioritize-in-gpu-process \
+            --use-cras \
+            --generic \
+            --user-data-dir="$DATA_DIR" \
+            --enable-gpu-sandbox \
+            --allow-webui-compositing \
+            --enable-natural-scroll-default \
+            "$REGISTER_PLUGINS" \
+            ${ACCELERATED_FLAGS} \
+            ${FLASH_FLAGS} \
+            ${PPAPI_FLASH_FLAGS}

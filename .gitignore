@@ -1,2 +1,4 @@
 debian/lightdm-login-chromiumos.debhelper.log
 /debian/lightdm-login-chromiumos
+/__pycache__
+**.pyc

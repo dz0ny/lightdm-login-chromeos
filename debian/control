@@ -8,7 +8,7 @@ Homepage: https://github.com/dz0ny/lightdm-login-chromeos
 
 Package: lightdm-login-chromiumos
 Architecture: amd64
-Depends: ${shlibs:Depends}, ${misc:Depends}, matchbox-window-manager, curl
+Depends: ${shlibs:Depends}, ${misc:Depends}, matchbox-window-manager, curl, python3, python3-dbus
 Recommends: google-chrome-stable, google-talkplugin, icedtea-plugin
 Description: Installs Chromium OS browser.
  Adds shortcuts to user login, which enables Chromium OS UI right from the start.

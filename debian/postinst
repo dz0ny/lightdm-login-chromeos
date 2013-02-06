@@ -32,6 +32,8 @@ case "$1" in
       mv /opt/chrome-linux /opt/chromeos
       chmod 775 /opt/chromeos -R
       chown root:root /usr/sbin/chromeos
+      chown root:root /usr/sbin/chromeos-dm
+      chown root:root /usr/sbin/chromeos-plain
       chown root:root /usr/share/xsessions/chromeos.desktop
       rm -rf $ZIPFILE
       echo "Finished"

@@ -8,7 +8,6 @@ import subprocess
 import time
 import signal
 import errno
-import imp
 import grp
 import pwd
 
@@ -23,7 +22,7 @@ def ck_open_session(uid):
     params.append(("unix-user", dbus.Int32(uid)))
     params.append(("session-type", dbus.String("")))
     params.append(("x11-display", dbus.String(os.environ['DISPLAY'])))
-    params.append(("x11-display-device", dbus.String('/dev/tty7')))
+    params.append(("x11-display-device", dbus.String('/dev/tty8')))
     params.append(("is-local", dbus.Boolean(True)))
     cookie = manager.OpenSessionWithParameters(params)
     os.environ['XDG_SESSION_COOKIE'] = cookie
@@ -72,7 +71,7 @@ class DM:
         self.vt = vt
         self.display = display
         self.server_started = False
-
+        self.force_failsafe = False
         self.username = "chronos"
         try:
             self.uid, self.gid = pwd.getpwnam(self.username)[2:4]
@@ -170,18 +169,18 @@ class DM:
                 with open(xorg_conf_failsafe, 'w') as xorg_conf_failsafe_file:
                     print('''\
 Section "Device"
-\tIdentifier	"Configured Video Device"
-\tDriver		"%s"
+\tIdentifier    "Configured Video Device"
+\tDriver        "%s"
 EndSection
 
 Section "Monitor"
-\tIdentifier	"Configured Monitor"
+\tIdentifier    "Configured Monitor"
 EndSection
 
 Section "Screen"
-\tIdentifier	"Default Screen"
-\tMonitor		"Configured Monitor"
-\tDevice		"Configured Video Device"
+\tIdentifier    "Default Screen"
+\tMonitor       "Configured Monitor"
+\tDevice        "Configured Video Device"
 EndSection
 ''' % attempt, file=xorg_conf_failsafe_file)
 
@@ -240,10 +239,6 @@ EndSection
             dbus_subp.stdout.close()
             dbus_subp.wait()
 
-        wm = subprocess.Popen(
-            "", stdin=null, stdout=logfile, stderr=logfile,
-            preexec_fn=self.drop_privileges)
-
         extras.append(subprocess.Popen(
             ['ibus-daemon'],
             stdin=null, stdout=logfile, stderr=logfile,
@@ -263,18 +258,15 @@ EndSection
                     raise
 
         def sigalrm_handler(signum, frame):
-            kill_if_exists(wm.pid, signal.SIGKILL)
             for extra in extras:
                 kill_if_exists(extra.pid, signal.SIGKILL)
-
-        kill_if_exists(wm.pid, signal.SIGTERM)
         for extra in extras:
             kill_if_exists(extra.pid, signal.SIGTERM)
 
         signal.signal(signal.SIGALRM, sigalrm_handler)
         signal.alarm(1)  # low patience with WMs failing to exit on demand
         processes = set(extras)
-        processes.add(wm)
+
         while processes:
             done = set()
             for process in processes:
