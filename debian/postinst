@@ -35,6 +35,7 @@ case "$1" in
       chown root:root /usr/share/xsessions/chromeos.desktop
       rm -rf $ZIPFILE
       echo "Finished"
+      update-grub2
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

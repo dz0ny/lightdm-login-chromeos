@@ -1,0 +1,325 @@
+#!/usr/bin/python3
+
+from __future__ import print_function
+
+import os
+import sys
+import subprocess
+import time
+import signal
+import errno
+import imp
+import grp
+import pwd
+
+
+def ck_open_session(uid):
+    import dbus
+    bus = dbus.SystemBus()
+    manager_obj = bus.get_object(
+        'org.freedesktop.ConsoleKit', '/org/freedesktop/ConsoleKit/Manager')
+    manager = dbus.Interface(manager_obj, 'org.freedesktop.ConsoleKit.Manager')
+    params = dbus.Array([], signature="(sv)")
+    params.append(("unix-user", dbus.Int32(uid)))
+    params.append(("session-type", dbus.String("")))
+    params.append(("x11-display", dbus.String(os.environ['DISPLAY'])))
+    params.append(("x11-display-device", dbus.String('/dev/tty7')))
+    params.append(("is-local", dbus.Boolean(True)))
+    cookie = manager.OpenSessionWithParameters(params)
+    os.environ['XDG_SESSION_COOKIE'] = cookie
+
+
+def set_locale():
+    locale = ''
+
+    if not locale:
+        return
+
+    with open('/etc/default/locale', 'w') as default_locale:
+        print('LANG="%s"' % locale, file=default_locale)
+
+    with open('/etc/environment') as environment:
+        environment_lines = environment.readlines()
+    with open('/etc/environment', 'w') as environment:
+        seen_lang = False
+        for line in environment_lines:
+            if line.startswith('LANG='):
+                print('LANG="%s"' % locale, file=environment)
+                seen_lang = True
+            else:
+                print(line.rstrip('\n'), file=environment)
+        if not seen_lang:
+            print('LANG="%s"' % locale, file=environment)
+
+    with open('/etc/locale.gen', 'w') as locale_gen:
+        print('%s UTF-8' % locale, file=locale_gen)
+
+    with open('/var/log/installer/dm', 'a') as logfile:
+        subprocess.call(['/usr/sbin/locale-gen', locale],
+                        stdout=logfile, stderr=logfile)
+
+
+class XStartupError(EnvironmentError):
+    pass
+
+
+class MissingProgramError(EnvironmentError):
+    pass
+
+
+class DM:
+    def __init__(self, vt, display, default_username):
+        self.vt = vt
+        self.display = display
+        self.server_started = False
+
+        self.username = "chronos"
+        try:
+            self.uid, self.gid = pwd.getpwnam(self.username)[2:4]
+        except KeyError:
+            import syslog
+            syslog.syslog('Could not find %s, falling back to root.' %
+                          self.username)
+            self.username = 'root'
+            self.uid, self.gid = 0, 0
+        os.environ['SUDO_USER'] = self.username
+        self.homedir = pwd.getpwnam(self.username)[5]
+        self.uid = int(self.uid)
+        self.gid = int(self.gid)
+        self.groups = []
+        for g in grp.getgrall():
+            if self.username in g[3] or g[0] == self.username:
+                self.groups.append(g[2])
+
+    def sigusr1_handler(self, signum, frame):
+        self.server_started = True
+
+    def active_vt(self):
+        import fcntl
+        import array
+
+        console = os.open('/dev/tty0', os.O_RDONLY | os.O_NOCTTY)
+        try:
+            VT_GETSTATE = 0x5603
+            vt_stat = array.array('H', [0, 0, 0])
+            fcntl.ioctl(console, VT_GETSTATE, vt_stat)
+            return vt_stat[0]
+        finally:
+            os.close(console)
+
+    def drop_privileges(self):
+        os.setgroups(self.groups)
+        os.setgid(self.gid)
+        os.setuid(self.uid)
+
+    def server_preexec(self):
+        signal.signal(signal.SIGUSR1, signal.SIG_IGN)
+
+    def run(self, *program):
+        extras = []
+        null = open('/dev/null', 'w')
+        try:
+            os.makedirs('/var/log/chromeos')
+        except OSError as e:
+            # be happy if someone already created the path
+            if e.errno != errno.EEXIST:
+                raise
+        logfile = open('/var/log/chromeos/dm', 'w')
+
+        signal.signal(signal.SIGUSR1, self.sigusr1_handler)
+        signal.signal(signal.SIGTTIN, signal.SIG_IGN)
+        signal.signal(signal.SIGTTOU, signal.SIG_IGN)
+
+        servercommand = ['X', '-br', '-ac', '-noreset', '-nolisten', 'tcp']
+
+        try:
+            plymouth_running = subprocess.call(['plymouth', '--ping']) == 0
+        except OSError:
+            plymouth_running = False
+        if plymouth_running:
+            subprocess.call(['plymouth', 'deactivate'])
+            if subprocess.call(['plymouth', '--has-active-vt']) == 0:
+                self.vt = 'vt%d' % self.active_vt()
+                servercommand.extend(['-background', 'none'])
+            else:
+                subprocess.call(['plymouth', 'quit'])
+                plymouth_running = False
+
+        servercommand.extend([self.vt, self.display])
+
+        for attempt in ('main', 'fbdev', 'vesa'):
+            command = list(servercommand)
+            if attempt == 'main' and self.force_failsafe:
+                continue
+            elif attempt != 'main':
+                # TODO cjwatson 2010-02-11: This is a bodge.  The
+                # duplication is nasty, but fortunately bullet-proof X
+                # actually turns out not to be very complicated nowadays.
+                # Most of the complexity is in the fallback session, which I
+                # haven't attempted to integrate here, so you won't get
+                # things like interactive reconfiguration.  I believe Evan
+                # is working on doing that, but is blocked on a couple of
+                # Upstart bugs; once all that's resolved, we should back
+                # this out.
+                if attempt == 'fbdev' and not os.path.exists('/dev/fb0'):
+                    continue
+                xorg_conf_failsafe = '/etc/X11/xorg.conf.failsafe'
+                command.extend(['-config', xorg_conf_failsafe])
+                command.extend(['-logfile', '/var/log/Xorg.%s.log' % attempt])
+
+                with open(xorg_conf_failsafe, 'w') as xorg_conf_failsafe_file:
+                    print('''\
+Section "Device"
+\tIdentifier	"Configured Video Device"
+\tDriver		"%s"
+EndSection
+
+Section "Monitor"
+\tIdentifier	"Configured Monitor"
+EndSection
+
+Section "Screen"
+\tIdentifier	"Default Screen"
+\tMonitor		"Configured Monitor"
+\tDevice		"Configured Video Device"
+EndSection
+''' % attempt, file=xorg_conf_failsafe_file)
+
+            server = subprocess.Popen(
+                command, stdin=null, stdout=logfile, stderr=logfile,
+                preexec_fn=self.server_preexec)
+
+            # Really we should select on a pipe or something, but it's not
+            # worth the effort for now.
+            try:
+                timeout = 60
+                while not self.server_started:
+                    status = server.poll()
+                    if type(status) is int and status != 0:
+                        if plymouth_running:
+                            subprocess.call(['plymouth', 'quit'])
+                        raise XStartupError('X server exited with return code '
+                                            + str(status))
+                    if timeout == 0:
+                        if plymouth_running:
+                            subprocess.call(['plymouth', 'quit'])
+                        raise XStartupError('X server failed to start after 60'
+                                            ' seconds')
+                    time.sleep(1)
+                    timeout -= 1
+                if plymouth_running:
+                    subprocess.call(['plymouth', 'quit', '--retain-splash'])
+            except XStartupError:
+                if attempt == 'vesa':
+                    raise
+
+            if self.server_started:
+                break
+
+        os.environ['DISPLAY'] = self.display
+        os.environ['HOME'] = self.homedir
+        # Give ubiquity a UID and GID that it can drop privileges to.
+        os.environ['SUDO_UID'] = str(self.uid)
+        os.environ['SUDO_GID'] = str(self.gid)
+        os.environ['GVFS_DISABLE_FUSE'] = '1'
+
+        ck_open_session(self.uid)
+
+        # Session bus, apparently needed by most interfaces now
+        if ('DBUS_SESSION_BUS_ADDRESS' not in os.environ):
+            dbus_subp = subprocess.Popen(
+                ['dbus-launch', '--exit-with-session'],
+                stdin=null, stdout=subprocess.PIPE, stderr=logfile,
+                preexec_fn=self.drop_privileges, universal_newlines=True)
+            for line in dbus_subp.stdout:
+                try:
+                    name, value = line.rstrip('\n').split('=', 1)
+                    os.environ[name] = value
+                except ValueError:
+                    pass
+            dbus_subp.stdout.close()
+            dbus_subp.wait()
+
+        wm = subprocess.Popen(
+            "", stdin=null, stdout=logfile, stderr=logfile,
+            preexec_fn=self.drop_privileges)
+
+        extras.append(subprocess.Popen(
+            ['ibus-daemon'],
+            stdin=null, stdout=logfile, stderr=logfile,
+            preexec_fn=self.drop_privileges))
+
+        greeter = subprocess.Popen(
+            program, stdin=null, stdout=logfile, stderr=logfile)
+        ret = greeter.wait()
+
+        reboot = False
+
+        def kill_if_exists(pid, signum):
+            try:
+                os.kill(pid, signum)
+            except OSError as e:
+                if e.errno != errno.ESRCH:
+                    raise
+
+        def sigalrm_handler(signum, frame):
+            kill_if_exists(wm.pid, signal.SIGKILL)
+            for extra in extras:
+                kill_if_exists(extra.pid, signal.SIGKILL)
+
+        kill_if_exists(wm.pid, signal.SIGTERM)
+        for extra in extras:
+            kill_if_exists(extra.pid, signal.SIGTERM)
+
+        signal.signal(signal.SIGALRM, sigalrm_handler)
+        signal.alarm(1)  # low patience with WMs failing to exit on demand
+        processes = set(extras)
+        processes.add(wm)
+        while processes:
+            done = set()
+            for process in processes:
+                try:
+                    process.wait()
+                    done.add(process)
+                except OSError as e:
+                    if e.errno == errno.EINTR:
+                        continue
+                    raise
+            processes -= done
+        signal.alarm(0)
+
+        # Clear the console so we don't see boot-time messages on switch
+        try:
+            with open('/dev/tty' + self.vt[2:], 'r+') as vthandle:
+                subprocess.call(['clear'], stdin=vthandle, stdout=vthandle)
+        except IOError:
+            pass
+
+        kill_if_exists(server.pid, signal.SIGTERM)
+        server.wait()
+
+        logfile.close()
+        null.close()
+
+        if reboot:
+            subprocess.Popen(['reboot'])
+        if ret is not None and ret >= 0:
+            return ret
+        else:
+            return 1
+
+
+if len(sys.argv) < 4:
+    sys.stderr.write('Usage: %s <vt[1-N]> <:[0-N]> <username> <program> '
+                     '[<arguments>]\n' % sys.argv[0])
+    sys.exit(1)
+
+vt, display, username = sys.argv[1:4]
+try:
+    dm = DM(vt, display, username)
+except XStartupError:
+    sys.exit(1)
+ret = dm.run(*sys.argv[4:])
+if ret == 0:
+    set_locale()
+sys.exit(ret)
