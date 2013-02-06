@@ -11,8 +11,8 @@ Installs Chromium OS Aura window manager to Ubuntu(64bit only), with embedded Ch
 
 ##How to install
 
-    wget https://github.com/downloads/dz0ny/lightdm-login-chromeos/lightdm-login-chromiumos_1.0_amd64.deb
-    sudo dpkg -i lightdm-login-chromiumos_1.0_amd64.deb
+    wget https://dl.dropbox.com/u/302704/chromiumos/lightdm-login-chromiumos_1.1_amd64.deb
+    sudo dpkg -i lightdm-login-chromiumos_1.1_amd64.deb
     sudo apt-get -f install
 
 ##FAQ
@@ -29,6 +29,7 @@ Installs Chromium OS Aura window manager to Ubuntu(64bit only), with embedded Ch
  - Simple development for ChromeOS specific plugins/extensions(~/chrome-os/user)
  - HW acceleration
  - Tablet mode
+ - Boot directly to ChromiumOS
 
 ##What doesn't work
 
